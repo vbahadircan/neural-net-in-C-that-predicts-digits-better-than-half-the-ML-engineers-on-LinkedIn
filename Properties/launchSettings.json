@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "MNIST_NeuralNetwork": {
+      "commandName": "Project",
+      "workingDirectory": "$(ProjectDir)"
+    }
+  }
+}
