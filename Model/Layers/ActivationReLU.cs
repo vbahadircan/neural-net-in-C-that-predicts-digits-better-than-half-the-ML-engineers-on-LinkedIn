@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MNIST_NeuralNetwork.NeuralNetwork.Layers
+namespace MNIST_NeuralNetwork.Model.Layers
 {
     public class ActivationReLU : Layer
     {
@@ -26,7 +26,7 @@ namespace MNIST_NeuralNetwork.NeuralNetwork.Layers
             // ReLU derivative: 1 if input > 0, else 0
             for (int i = 0; i < inputs.Length; i++)
             {
-                inputGradients[i] = (inputs[i] > 0) ? gradients[i] : 0;
+                inputGradients[i] = inputs[i] > 0 ? gradients[i] : 0;
             }
 
             return inputGradients;

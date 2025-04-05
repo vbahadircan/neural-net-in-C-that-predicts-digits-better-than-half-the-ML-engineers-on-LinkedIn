@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MNIST_NeuralNetwork.NeuralNetwork.LossFunctions
+namespace MNIST_NeuralNetwork.Model.LossFunctions
 {
     public class CrossEntropyLoss : ILossFunction
     {

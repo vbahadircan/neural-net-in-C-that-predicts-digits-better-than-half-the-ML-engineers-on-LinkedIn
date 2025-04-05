@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MNIST_NeuralNetwork.NeuralNetwork.Layers
+namespace MNIST_NeuralNetwork.Model.Layers
 {
     public class ActivationSoftmax : Layer
     {

@@ -1,11 +1,16 @@
 ﻿using System;
 using System.Linq;
 using MNIST_NeuralNetwork.Data;
-using MNIST_NeuralNetwork.NeuralNetwork;
-using MNIST_NeuralNetwork.NeuralNetwork.Layers;
-using MNIST_NeuralNetwork.NeuralNetwork.LossFunctions;
+using MNIST_NeuralNetwork.Model;
+using MNIST_NeuralNetwork.Model.Layers;
+using MNIST_NeuralNetwork.Model.LossFunctions;
+using MNIST_NeuralNetwork.Training;
+using MNIST_NeuralNetwork.Visualization;
 
-class Program
+namespace MNIST_NeuralNetwork
+{
+    
+    class Program
 {
     static void Main()
     {
@@ -25,6 +30,11 @@ class Program
         var (testImages, testLabels) = MnistLoader.LoadImagesAndLabels(testImagesPath, testLabelsPath);
         List<double[]> testLabelsEncoded = MnistLoader.OneHotEncoder(testLabels);
 
+        // Split training data into training and validation sets
+        double validationRatio = 0.2; // 20% for validation
+        var (trainImagesSubset, valImages, trainLabelsEncodedSubset, valLabelsEncoded) = MnistLoader.SplitData(trainImages, trainLabelsEncoded, validationRatio);
+
+
         // Create a new neural network with learningRate=0.01 and CrossEntropyLoss
         NeuralNetwork model = new NeuralNetwork(learningRate: 0.01, new CrossEntropyLoss());
 
@@ -37,54 +47,41 @@ class Program
         model.AddLayer(new ActivationReLU());
 
 
-        // 2) Train the model
-        int epochs = 10;
+            // 2) Train the model
+            Trainer trainer = new Trainer(model, 0.01);
 
-        Console.WriteLine("Training the neural network...");
-        model.TrainEpoch(trainImages, trainLabelsEncoded, epochs);
-        //model.TrainEpoch(testImages, testLabelsEncoded, epochs);
+            int totalEpochs = 10;
+            trainer.TrainAll(trainImagesSubset, trainLabelsEncodedSubset, valImages, valLabelsEncoded, totalEpochs);
 
-        //int epochs = 10;
-        //int subsetSize = 1000; // Use a smaller subset of 100 samples
-
-        //var trainImagesSubset = trainImages.Take(subsetSize).ToList();
-        //var trainLabelsEncodedSubset = trainLabelsEncoded.Take(subsetSize).ToList();
-
-        //Console.WriteLine("Training the neural network with a smaller subset...");
-        //model.TrainEpoch(trainImagesSubset, trainLabelsEncodedSubset, epochs);
+            // 3) Plot Results
+            Plotter.PlotMetrics(trainer.epochList, trainer.trainLossList, trainer.valLossList, trainer.valAccList, trainer.epochTimeList);
 
 
+            // Print a sample image data
 
-        //3) Evaluate the model
-        Console.WriteLine("Evaluating the model...");
-        double accuracy = model.Test(testImages, testLabels);
-        Console.WriteLine($"Test accuracy: {accuracy:P2}");
-
-
-        // Print a sample image data
-
-        //double[] test = trainImages[0];
-        //for (int i = 0; i < test.Length; i++)
-        //{
-        //    Console.Write(test[i] + " ");
-        //    if (i % 28 == 0)
-        //    {
-        //        Console.WriteLine();
-        //    }
-        //}
+            //double[] test = trainImages[0];
+            //for (int i = 0; i < test.Length; i++)
+            //{
+            //    Console.Write(test[i] + " ");
+            //    if (i % 28 == 0)
+            //    {
+            //        Console.WriteLine();
+            //    }
+            //}
 
 
-        /*
-        // Display trainLabels[0]
-        Console.WriteLine(trainLabels[0]);
+            /*
+            // Display trainLabels[0]
+            Console.WriteLine(trainLabels[0]);
 
-        // Display trainLabelsEncoded[0]
-        for (int i = 0; i < trainLabelsEncoded[0].Length; i++)
-        {
-            Console.Write(trainLabelsEncoded[0][i] + " ");
+            // Display trainLabelsEncoded[0]
+            for (int i = 0; i < trainLabelsEncoded[0].Length; i++)
+            {
+                Console.Write(trainLabelsEncoded[0][i] + " ");
+            }
+            */
+
+
         }
-        */
-
-
     }
 }

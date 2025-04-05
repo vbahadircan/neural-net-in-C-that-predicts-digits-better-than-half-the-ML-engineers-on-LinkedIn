@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MNIST_NeuralNetwork.NeuralNetwork.Layers
+namespace MNIST_NeuralNetwork.Model.Layers
 {
     public class DenseLayer : Layer
     {

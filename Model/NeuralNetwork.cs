@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using MNIST_NeuralNetwork.NeuralNetwork.Layers;
-using MNIST_NeuralNetwork.NeuralNetwork.LossFunctions;
+using MNIST_NeuralNetwork.Model.Layers;
+using MNIST_NeuralNetwork.Model.LossFunctions;
 
-namespace MNIST_NeuralNetwork.NeuralNetwork
+namespace MNIST_NeuralNetwork.Model
 {
     public class NeuralNetwork
     {
-        private List<Layer> layers = new List<Layer>();
-        private ILossFunction lossFunction;
-        private double learningRate;
+        public List<Layer> layers = new List<Layer>();
+        public ILossFunction lossFunction;
+        public double learningRate;
 
         public NeuralNetwork(double learningRate, ILossFunction lossFunction)
         {
@@ -51,7 +51,7 @@ namespace MNIST_NeuralNetwork.NeuralNetwork
             }
         }
         
-        public void TrainEpoch(List<double[]> inputs, List<double[]> targets, int epochs)
+        public void TrainEpoch(List<double[]> inputs, List<double[]> targets, List<double[]> valInputs, List<double[]> valTargets,  int epochs)
         {
             for (int epoch = 1; epoch <= epochs; epoch++)
             {
@@ -62,42 +62,41 @@ namespace MNIST_NeuralNetwork.NeuralNetwork
                 {
                     // 1) Forward
                     double[] output = Forward(inputs[i]);
-                    //Console.WriteLine("Output: ");
-                    //for (int j = 0; j < output.Length; j++)
-                    //{
-                    //    Console.Write($"{output[j]:F4}, ");
-                    //}
 
                     // 2) Compute the loss (optional, for logging)
                     double lossValue = lossFunction.Compute(output, targets[i]);
-                    //Console.WriteLine($"Loss: {lossValue:F4}"); 
                     totalLoss += lossValue;
 
                     // 3) Compute gradient of loss w.r.t. output
                     double[] lossGradient = lossFunction.Derivative(output, targets[i]);
-                    //Console.WriteLine("Loss Gradient: ");
-                    //for (int j = 0; j < lossGradient.Length; j++)
-                    //{
-                    //    Console.Write($"{lossGradient[j]:F4}, ");
-                    //}
+                   
 
                     // 4) Backward pass
                     for (int layerIndex = layers.Count - 1; layerIndex >= 0; layerIndex--)
                     {
                         lossGradient = layers[layerIndex].Backward(lossGradient, learningRate);
                     }
-                    //Console.WriteLine();
                 }
-
-                // Optionally print epoch info
                 double averageLoss = totalLoss / inputs.Count;
-                Console.WriteLine($"Epoch {epoch}/{epochs} -> Avg Loss: {averageLoss:F4}");
+                double validationLoss = EvaluateValidationLoss(valInputs, valTargets);
+                Console.WriteLine($"Epoch {epoch}/{epochs} -> Avg Loss: {averageLoss:F4}, Validation Loss: {validationLoss:F4}");
             }
+        }
+
+        public double EvaluateValidationLoss(List<double[]> valInputs, List<double[]> valTargets)
+        {
+            double totalLoss = 0.0;
+            for (int i = 0; i < valInputs.Count; i++)
+            {
+                double[] output = Forward(valInputs[i]);
+                totalLoss += lossFunction.Compute(output, valTargets[i]);
+            }
+            return totalLoss / valInputs.Count;
         }
 
         // Test the model
         // This method takes targets as labels (not one-hot encoded)
-        public double Test(List<double[]> inputs, List<int> targets)
+        public double EvaluateAccuracy(List<double[]> inputs, List<int> targets)
         {
             int correct = 0; 
             for (int i = 0; i < inputs.Count; i++)
@@ -119,13 +118,9 @@ namespace MNIST_NeuralNetwork.NeuralNetwork
 
                 // Find actual class
                 int actualIndex = (int)targets[i];
-                //Console.WriteLine($"Predicted: {predictedIndex}, Actual: {actualIndex}");
-                // Compare
                 if (predictedIndex == actualIndex)
                     correct++;
             }
-
-            // Return accuracy
             return (double)correct / inputs.Count;
         }
     }

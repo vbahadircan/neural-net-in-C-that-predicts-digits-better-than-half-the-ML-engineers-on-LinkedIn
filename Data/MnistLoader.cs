@@ -150,6 +150,23 @@ namespace MNIST_NeuralNetwork.Data
             return oneHotLabels;
         }
 
+        public static (List<T>, List<T>, List<U>, List<U>) SplitData<T, U>(List<T> data, List<U> labels, double validationRatio)
+        {
+            if (data.Count != labels.Count)
+            {
+                throw new ArgumentException("Data and labels must have the same number of elements.");
+            }
+
+            int validationSize = (int)(data.Count * validationRatio);
+            var valData = data.Take(validationSize).ToList();
+            var valLabels = labels.Take(validationSize).ToList();
+            var trainData = data.Skip(validationSize).ToList();
+            var trainLabels = labels.Skip(validationSize).ToList();
+
+            return (trainData, valData, trainLabels, valLabels);
+        }
+
+
         // Helper: Convert from big-endian to little-endian
         private static int ReverseInt32(int value)
         {
