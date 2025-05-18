@@ -4,14 +4,16 @@ namespace MNIST_NeuralNetwork.Model.Layers
 {
     public class DenseLayer : Layer
     {
-        private double[,] weights;
-        private double[] biases;
+        public double[,] weights;
+        public double[] biases;
         private double[] inputs;
         private double[] outputs;
         private Random rand = new Random();
 
         public int InputSize { get; }
         public int OutputSize { get; }
+
+
 
         public DenseLayer(int inputSize, int outputSize)
         {

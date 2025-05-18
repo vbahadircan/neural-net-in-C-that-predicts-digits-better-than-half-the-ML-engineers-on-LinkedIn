@@ -4,6 +4,7 @@ using System.Diagnostics;
 using MNIST_NeuralNetwork.Model;
 using MNIST_NeuralNetwork.Model.Layers;
 using MNIST_NeuralNetwork.Model.LossFunctions;
+using MNIST_NeuralNetwork.Utils;
 
 namespace MNIST_NeuralNetwork.Training
 {
@@ -33,13 +34,15 @@ namespace MNIST_NeuralNetwork.Training
             {
                 // 1) Time the training for this epoch
                 Stopwatch sw = Stopwatch.StartNew();
+                network.setTrainingMode(true); // Set training mode for dropout layers
                 double trainLoss = TrainOneEpoch(trainInputs, trainLabels);
                 sw.Stop();
                 double elapsedSeconds = sw.Elapsed.TotalSeconds;
 
                 // 2) Evaluate on validation
-                double valLoss = EvaluateLoss(valInputs, valLabels);
-                double valAcc = EvaluateAccuracy(valInputs, valLabels);
+                network.setTrainingMode(false); // Set evaluation mode for dropout layers
+                double valLoss = Evaluator.EvaluateLoss(network, valInputs, valLabels);
+                double valAcc = Evaluator.EvaluateAccuracy(network, valInputs, valLabels);
 
                 // 3) Store metrics
                 epochList.Add(epoch);
@@ -71,30 +74,8 @@ namespace MNIST_NeuralNetwork.Training
             return totalLoss / trainInputs.Count;
         }
 
-        private double EvaluateLoss(List<double[]> inputs, List<double[]> labels)
-        {
-            double totalLoss = 0.0;
-            for (int i = 0; i < inputs.Count; i++)
-            {
-                var output = network.Forward(inputs[i]);
-                totalLoss += network.lossFunction.Compute(output, labels[i]);
-            }
-            return totalLoss / inputs.Count;
-        }
+        
 
-        private double EvaluateAccuracy(List<double[]> inputs, List<double[]> labels)
-        {
-            int correct = 0;
-            for (int i = 0; i < inputs.Count; i++)
-            {
-                double[] output = network.Forward(inputs[i]);
-                int predicted = Array.IndexOf(output, output.Max());
-                int actual = Array.IndexOf(labels[i], 1);
-                if (predicted == actual)
-                    correct++;
-            }
-            return (double)correct / inputs.Count;
-        }
 
         // Expose these lists so Plotter can use them
         public List<int> Epochs => epochList;

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using MNIST_NeuralNetwork.Model.Layers;
 using MNIST_NeuralNetwork.Model.LossFunctions;
+using MNIST_NeuralNetwork.Utils;
 
 namespace MNIST_NeuralNetwork.Model
 {
@@ -34,94 +35,99 @@ namespace MNIST_NeuralNetwork.Model
             return output;
         }
 
-        // Train one step using backpropagation
-        
-        public void Train(double[] input, double[] target)
+        public void setTrainingMode(bool isTraining)
         {
-            // 1) Forward
-            double[] output = Forward(input);
-
-            // 2) Compute the gradient of loss w.r.t. output
-            double[] lossGradient = lossFunction.Derivative(output, target);
-
-            // 3) Backward
-            for (int i = layers.Count - 1; i >= 0; i--)
+            foreach (var layer in layers)
             {
-                lossGradient = layers[i].Backward(lossGradient, learningRate);
-            }
-        }
-        
-        public void TrainEpoch(List<double[]> inputs, List<double[]> targets, List<double[]> valInputs, List<double[]> valTargets,  int epochs)
-        {
-            for (int epoch = 1; epoch <= epochs; epoch++)
-            {
-                double totalLoss = 0.0;
-
-                // Iterate through all samples in training set
-                for (int i = 0; i < inputs.Count; i++)
+                if (layer is Dropout dropoutLayer)
                 {
-                    // 1) Forward
-                    double[] output = Forward(inputs[i]);
-
-                    // 2) Compute the loss (optional, for logging)
-                    double lossValue = lossFunction.Compute(output, targets[i]);
-                    totalLoss += lossValue;
-
-                    // 3) Compute gradient of loss w.r.t. output
-                    double[] lossGradient = lossFunction.Derivative(output, targets[i]);
-                   
-
-                    // 4) Backward pass
-                    for (int layerIndex = layers.Count - 1; layerIndex >= 0; layerIndex--)
-                    {
-                        lossGradient = layers[layerIndex].Backward(lossGradient, learningRate);
-                    }
+                    dropoutLayer.IsTraining = isTraining;
                 }
-                double averageLoss = totalLoss / inputs.Count;
-                double validationLoss = EvaluateValidationLoss(valInputs, valTargets);
-                Console.WriteLine($"Epoch {epoch}/{epochs} -> Avg Loss: {averageLoss:F4}, Validation Loss: {validationLoss:F4}");
             }
         }
 
-        public double EvaluateValidationLoss(List<double[]> valInputs, List<double[]> valTargets)
+        private class ModelDto
         {
-            double totalLoss = 0.0;
-            for (int i = 0; i < valInputs.Count; i++)
-            {
-                double[] output = Forward(valInputs[i]);
-                totalLoss += lossFunction.Compute(output, valTargets[i]);
-            }
-            return totalLoss / valInputs.Count;
+            public List<LayerDto> Layers { get; set; }
         }
 
-        // Test the model
-        // This method takes targets as labels (not one-hot encoded)
-        public double EvaluateAccuracy(List<double[]> inputs, List<int> targets)
+        private class LayerDto
         {
-            int correct = 0; 
-            for (int i = 0; i < inputs.Count; i++)
-            {
-                // Forward pass
-                double[] output = Forward(inputs[i]);
+            public string Type { get; set; }
+            public double[][] Weights { get; set; }
 
-                // Find predicted class
-                int predictedIndex = 0;
-                double maxVal = double.MinValue;
-                for (int j = 0; j < output.Length; j++)
+            public double[] Biases { get; set; }
+            public double DropoutRate { get; set; }
+
+        }
+
+        public void Save(string path)
+        {
+            var modelDto = new ModelDto
+            {
+                Layers = new List<LayerDto>()
+            };
+            foreach (var layer in layers)
+            {
+                var layerDto = new LayerDto
                 {
-                    if (output[j] > maxVal)
-                    {
-                        maxVal = output[j];
-                        predictedIndex = j;
-                    }
+                    Type = layer.GetType().Name,
+                };
+
+                if (layer is DenseLayer denseLayer)
+                {
+                    layerDto.Weights = ArrayUtils.ToJagged(denseLayer.weights);
+                    layerDto.Biases = denseLayer.biases;
+                }
+                else if (layer is ActivationReLU)
+                {
+                    // ActivationReLU has no weights or biases to save
+                    layerDto.Weights = null;
+                    layerDto.Biases = null;
                 }
 
-                // Find actual class
-                int actualIndex = (int)targets[i];
-                if (predictedIndex == actualIndex)
-                    correct++;
+                else if (layer is Dropout dropoutLayer)
+                {
+                    layerDto.Weights = null;
+                    layerDto.Biases = null;
+                    layerDto.DropoutRate = dropoutLayer.dropoutRate;
+                }
+
+                modelDto.Layers.Add(layerDto);
             }
-            return (double)correct / inputs.Count;
+            string json = System.Text.Json.JsonSerializer.Serialize(modelDto);
+            System.IO.File.WriteAllText(path, json);
+        }
+
+        public void Load(string path)
+        {
+            string json = System.IO.File.ReadAllText(path);
+            var modelDto = System.Text.Json.JsonSerializer.Deserialize<ModelDto>(json);
+            layers.Clear();
+            foreach (var layerDto in modelDto.Layers)
+            {
+                Layer layer = null;
+                if (layerDto.Type == nameof(DenseLayer))
+                {
+                    var denseLayer = new DenseLayer(layerDto.Weights.Length, layerDto.Weights[0].Length);
+                    denseLayer.weights = ArrayUtils.To2D(layerDto.Weights);
+                    denseLayer.biases = layerDto.Biases;
+                    layer = denseLayer;
+                }
+                else if (layerDto.Type == nameof(ActivationReLU))
+                {
+                    layer = new ActivationReLU();
+                }
+                else if (layerDto.Type == nameof(Dropout))
+                {
+                    var dropoutLayer = new Dropout(layerDto.DropoutRate);
+                    layer = dropoutLayer;
+                }
+                if (layer != null)
+                {
+                    layers.Add(layer);
+                }
+            }
         }
     }
 }
