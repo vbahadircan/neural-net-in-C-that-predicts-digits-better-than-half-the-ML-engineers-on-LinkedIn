@@ -109,7 +109,7 @@ namespace MNIST_NeuralNetwork.Model
                 Layer layer = null;
                 if (layerDto.Type == nameof(DenseLayer))
                 {
-                    var denseLayer = new DenseLayer(layerDto.Weights.Length, layerDto.Weights[0].Length);
+                    var denseLayer = new DenseLayer(layerDto.Weights[0].Length, layerDto.Weights.Length);
                     denseLayer.weights = ArrayUtils.To2D(layerDto.Weights);
                     denseLayer.biases = layerDto.Biases;
                     layer = denseLayer;
